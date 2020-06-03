@@ -6,7 +6,9 @@ import pandas as pd
 
 #https://stackoverflow.com/questions/42654961/creating-pandas-dataframe-from-os
 res = []
-for root, dirs, files in os.walk('E:\\Dados\\FLH HOLIDAY RENTALS\\011_Fotos\\', topdown=True):
+path = 'E:\\011_Fotos\\'
+#path = 'E:\\Dados\\FLH HOLIDAY RENTALS\\011_Fotos\\'
+for root, dirs, files in os.walk(path, topdown=True):
     if len(files) > 0:
         res.extend(list(zip([root]*len(files), files)))
 
@@ -20,7 +22,18 @@ df = df[df['ClientId'] < 10000]
 df['Full_Path'] = df["Path"] + '\\' + df["File_Name"]
 df['Cat'] = df.File_Name.apply(lambda x: x.split(".")[0].split("_")[-1])
 
-df = df[df.Cat.isin(['1','3','4'])]
+classes = ['1','3','4']
+df = df[df.Cat.isin(classes)]
+df_total = df
+df = pd.DataFrame(columns=df_total.columns)
+
+numOfSamplesCat = 300
+from sklearn.utils import shuffle
+# Get only 100 pics of each class
+for cl in classes:
+    df_class = shuffle(df_total[df_total['Cat'] == cl]).iloc[:numOfSamplesCat, :]
+    df = df.append(df_class)
+
 
 from sklearn.model_selection import train_test_split
 
@@ -90,19 +103,38 @@ test_set = train_datagen.flow_from_dataframe(dataframe=df_test, directory = None
 #
 training_set.class_indices
 
+from datetime import datetime
+
+now = datetime.now()
+print("now =", now)
+
+numEpochs = 100
 hist=classifier.fit_generator(training_set,
-                         steps_per_epoch = 4000,
-                         epochs = 15,
+                         #steps_per_epoch = 4000,
+                         epochs = numEpochs,
                          validation_data = test_set,
-                         validation_steps = 1000)
+                         #validation_steps = 1000)
+                              )
 
-import numpy as np
-from sklearn.metrics import classification_report, confusion_matrix
+now = datetime.now()
+print("now =", now)
 
-Y_pred = classifier.predict_generator(test_set, 63) # num_of_test_samples // batch_size+1
-#Y_pred = (Y_pred>0.5)
-print('Confusion Matrix')
-print(confusion_matrix(test_set.classes, Y_pred))
-print('Classification Report')
-target_names = ['Kitchen', 'Bedroom', 'Bathroom']
-print(classification_report(test_set.classes, Y_pred, target_names=target_names))
+filenamebase= '_'.join([str(numOfSamplesCat), str(numEpochs)])
+filename = filenamebase + '_train.txt'
+with open(filename, 'w') as filehandle:
+    for listitem in hist.history['accuracy']:
+        filehandle.write('%s\n' % listitem)
+
+filename = filenamebase + '_val.txt'
+with open(filename, 'w') as filehandle:
+    for listitem in hist.history['val_accuracy']:
+        filehandle.write('%s\n' % listitem)
+
+#from sklearn.metrics import classification_report, confusion_matrix
+# Y_pred = classifier.predict_generator(test_set, 60) # num_of_test_samples // batch_size+1
+# #Y_pred = (Y_pred>0.5)S
+# print('Confusion Matrix')
+# print(confusion_matrix(test_set.classes, Y_pred))
+# print('Classification Report')
+# target_names = ['Kitchen', 'Bedroom', 'Bathroom']
+# print(classification_report(test_set.classes, Y_pred, target_names=target_names))
