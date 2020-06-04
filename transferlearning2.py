@@ -26,15 +26,20 @@ while some others are not abstract (their code is defined in the parent class so
 '''
 
 '''
-What is common between the child classes?
-- a group of pre trained models must be defined for further study
-- each model is defined by a sequence of layers which have the same structure whithin the same child class:
-    1. ConvBaseSearchClassifier: the sequence is the same of the pretrained model
-    2. ConvBaseSearchSFE: 
-    3. ConvBaseSearchIFE: the sequence is the same (or part) of the pretrained model plus a new sequence
-    4. ConvBaseSearchWI: the sequence is the same (or part) of the pretrained model plus a new sequence
-- the pipeline: build layers + compile + fit 
-- 
+What is common between the child classes that can be implemented in the parent class?
+    - a group of pre trained models must be defined for further study
+    - each model is defined by a sequence of layers which have the same structure whithin the same child class
+    - the pipeline: build layers + compile + fit 
+    - 
+'''
+
+'''
+What is different between child classes that needs to be implemented in the child classes?
+    - how the mode is created
+        1. ConvBaseSearchClassifier: the sequence is the same of the pretrained model
+        2. ConvBaseSearchSFE: 
+        3. ConvBaseSearchIFE: the sequence is the same (or part) of the pretrained model plus a new sequence
+        4. ConvBaseSearchWI: the sequence is the same (or part) of the pretrained model plus a new sequence
 '''
 
 from abc import ABC, abstractmethod
@@ -142,7 +147,7 @@ class ConvBaseSearch(ABC):
 
     def __init_models(self):
         '''
-        We will assume that when the instance of the class is initialized the models to be trained are exactly the same
+        We will assume that when the instance of the class is initialized, the models to be trained are exactly the same
         as the pre trained models
         '''
         models = []
@@ -154,7 +159,7 @@ class ConvBaseSearch(ABC):
     @abstractmethod
     def __adapt_models(self):
         '''
-        Here is the method in which the layers of the models are adapted
+        Here is the method in which the layers of the pre model and top model are adapted
         As this is depending on the child class, it's an abstract method
         '''
         pass
@@ -203,44 +208,54 @@ class ConvBaseSearch(ABC):
         - a list of pre trained model objects
         Returns a list of ConvBase objects
         '''
-        if self.__is_list_of_strings(pretrained_models):
+        if is_list_of_strings(pretrained_models):
             return [ConvBase(ptm) for ptm in pretrained_models]
-        else:
-            #To do
-            return None
-
-# Utils
-    def __is_list_of_strings(self, lst):
-        if lst and isinstance(lst, list):
-            return all(isinstance(elem, str) for elem in lst)
-        else:
-            return False
-
+        #To do
+        # elif is_list_of_models(pretrained_models):
+        # else is_model(pretrained_models):
+        # else is_string(pretrained_models):
 
 
 class ConvBaseSearchIFE(ConvBaseSearch):
 
-    def __init__(self, pretrained_models, n_classes, top_model = None):
+    def __init__(self, pretrained_models, n_classes, top_model = None, n_trainable = 0):
         # some more arguments should be passed here to instruct the number of layers from the pretrained model to be used
         self.top_model = self.__input_top_model(top_model, n_classes)
+        self.n_trainable = n_trainable
         super().__init__(pretrained_models)
+        self.__adapt_models(n_trainable)
 
     def __adapt_models(self):
         '''
         Here is where we adapt the base model (which is the pretrained model) and connect it to the top_model
         '''
-
+        top_model = self.top_model
+        for model, conv_base in zip(self.models, self.conv_bases):
+            # at this point, model is just the base pre trained model
+            # check the number of layers of base model
+            base_num_layers = len(model.layers)
+            # freezes all layers of the pre trained model (except the last n_trainable)
+            for i_layer, layer in enumerate(model.layers):
+                if base_num_layers - i_layer > self.n_trainable:
+                    layer.trainable = False
+            # need to remove the last layer of the pre trained model
+            model.pop()
+            # flatten the last layer
+            model.add(layers.Flatten())
+            # add the top model
+            model.add(top_model)
 
     def __input_top_model(self, top_model, n_classes):
         if top_model == None:
             # use custom top model
             return self.__build_custom_model(n_classes)
         else:
+            # use the model input by the user
             return top_model
 
     def __build_custom_model(self, n_classes):
         """
-        Function that intializes a densely connected network that will be trained on top of the convolutional base.
+        Function that initializes a densely connected network that will be trained on top of the convolutional base.
 
         Args:
         ---
@@ -263,5 +278,11 @@ class ConvBaseSearchIFE(ConvBaseSearch):
         model.add(layers.Dense(256, activation="relu"))
         model.add(layers.Dropout(0.5))
         model.add(layers.Dense(n_classes, activation=activation))
-
         return model
+
+# Utils
+def is_list_of_strings(lst):
+    if lst and isinstance(lst, list):
+        return all(isinstance(elem, str) for elem in lst)
+    else:
+        return False
