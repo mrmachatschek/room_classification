@@ -1,4 +1,6 @@
 data/
+raw_data/
+formatted_data/
 
 
 # Byte-compiled / optimized / DLL files
