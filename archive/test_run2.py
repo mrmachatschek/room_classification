@@ -80,7 +80,7 @@ classifier.compile(optimizer = 'rmsprop', loss = 'categorical_crossentropy', met
 # fit the models within the searcher!
 ##################################################################################################
 
-hist=classifier.fit_generator(training_set,
+classifier.fit_generator(training_set,
                          #steps_per_epoch = 4000,
                          epochs = 100,
                          validation_data = test_set,
