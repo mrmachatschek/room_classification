@@ -20,7 +20,11 @@ import time
 import os
 import copy
 
+from torch.utils.tensorboard import SummaryWriter
+
 # Define transformations for the images
+
+writer = SummaryWriter('logs/model_runs')
 
 data_transforms = {
     'train': transforms.Compose([
@@ -106,6 +110,13 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
             print('{} Loss: {:.4f} Acc: {:.4f}'.format(
                 phase, epoch_loss, epoch_acc))
+            
+            #writer.add_scalar(f'{phase}/loss', epoch_loss, epoch)
+            #writer.add_scalar(f'{phase}/acc', epoch_acc, epoch)
+            
+            writer.add_scalars(f'{model_tensorboard}/{phase}',
+                                   {'loss':epoch_loss,
+                                    'acc':epoch_acc,}, epoch)
 
             # deep copy the model
             if phase == 'test' and epoch_acc > best_acc:
@@ -124,48 +135,282 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     return model
 
 ## Fine Tune Model
-       
-model_ft = models.resnet18(pretrained=True)
+
+model_ft = models.googlenet(pretrained=True)
 
 num_ftrs = model_ft.fc.in_features
 # Here the size of each output sample is set to 2.
 # Alternatively, it can be generalized to nn.Linear(num_ftrs, len(class_names)).
 model_ft.fc = nn.Linear(num_ftrs, len(class_names))
-
 model_ft = model_ft.to(device)
 
 criterion = nn.CrossEntropyLoss()
-
 # Observe that all parameters are being optimized
 optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
 
 # Decay LR by a factor of 0.1 every 7 epochs
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
 
+
+model_tensorboard = "googlenet"
 model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
                        num_epochs=25)
 
 
-## Feature extractor
+model_ft = models.resnet18(pretrained=True)
 
-model_conv = torchvision.models.resnet18(pretrained=True)
-for param in model_conv.parameters():
-    param.requires_grad = False
-
-# Parameters of newly constructed modules have requires_grad=True by default
-num_ftrs = model_conv.fc.in_features
-model_conv.fc = nn.Linear(num_ftrs, len(class_names))
-
-model_conv = model_conv.to(device)
+num_ftrs = model_ft.fc.in_features
+# Here the size of each output sample is set to 2.
+# Alternatively, it can be generalized to nn.Linear(num_ftrs, len(class_names)).
+model_ft.fc = nn.Linear(num_ftrs, len(class_names))
+model_ft = model_ft.to(device)
 
 criterion = nn.CrossEntropyLoss()
-
-# Observe that only parameters of final layer are being optimized as
-# opposed to before.
-optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
 
 # Decay LR by a factor of 0.1 every 7 epochs
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
 
-model_conv = train_model(model_conv, criterion, optimizer_conv,
-                         exp_lr_scheduler, num_epochs=25)
+
+model_tensorboard = "resnet-18"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+
+model_ft = models.resnet34(pretrained=True)
+
+num_ftrs = model_ft.fc.in_features
+# Here the size of each output sample is set to 2.
+# Alternatively, it can be generalized to nn.Linear(num_ftrs, len(class_names)).
+model_ft.fc = nn.Linear(num_ftrs, len(class_names))
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "resnet-34"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+
+
+model_ft = models.resnet50(pretrained=True)
+
+num_ftrs = model_ft.fc.in_features
+# Here the size of each output sample is set to 2.
+# Alternatively, it can be generalized to nn.Linear(num_ftrs, len(class_names)).
+model_ft.fc = nn.Linear(num_ftrs, len(class_names))
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "resnet-50"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+model_ft = models.resnet101(pretrained=True)
+
+num_ftrs = model_ft.fc.in_features
+# Here the size of each output sample is set to 2.
+# Alternatively, it can be generalized to nn.Linear(num_ftrs, len(class_names)).
+model_ft.fc = nn.Linear(num_ftrs, len(class_names))
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "resnet-101"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+
+model_ft = models.resnet152(pretrained=True)
+
+num_ftrs = model_ft.fc.in_features
+# Here the size of each output sample is set to 2.
+# Alternatively, it can be generalized to nn.Linear(num_ftrs, len(class_names)).
+model_ft.fc = nn.Linear(num_ftrs, len(class_names))
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "resnet-152"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+
+
+model_ft = models.vgg11(pretrained=True)
+
+model_ft.classifier[6] = nn.Linear(4096, len(class_names))
+
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "vgg11"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+
+model_ft = models.vgg11_bn(pretrained=True)
+
+model_ft.classifier[6] = nn.Linear(4096, len(class_names))
+
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "vgg11_bn"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+
+model_ft = models.vgg13(pretrained=True)
+
+model_ft.classifier[6] = nn.Linear(4096, len(class_names))
+
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "vgg13"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+
+model_ft = models.vgg13_bn(pretrained=True)
+
+model_ft.classifier[6] = nn.Linear(4096, len(class_names))
+
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "vgg13_bn"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+
+model_ft = models.vgg16(pretrained=True)
+
+model_ft.classifier[6] = nn.Linear(4096, len(class_names))
+
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "vgg16"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+
+model_ft = models.vgg16_bn(pretrained=True)
+
+model_ft.classifier[6] = nn.Linear(4096, len(class_names))
+
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "vgg16_bn"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+
+model_ft = models.vgg19(pretrained=True)
+
+model_ft.classifier[6] = nn.Linear(4096, len(class_names))
+
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "vgg19"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)
+
+
+
+model_ft = models.vgg19_bn(pretrained=True)
+
+model_ft.classifier[6] = nn.Linear(4096, len(class_names))
+
+model_ft = model_ft.to(device)
+
+criterion = nn.CrossEntropyLoss()
+# Observe that all parameters are being optimized
+optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+# Decay LR by a factor of 0.1 every 7 epochs
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+
+
+model_tensorboard = "vgg19_bn"
+model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
+                       num_epochs=25)

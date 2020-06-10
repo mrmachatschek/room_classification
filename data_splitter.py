@@ -17,7 +17,8 @@ paths_images = glob.glob(str(p) + "*jpg")
 cat = [int(re.search("\d+\.", i).group().strip(".")) for i in paths_images]
 
 df = pd.DataFrame(list(zip(paths_images, cat)), columns=["path", "cat"])
-df = df[df["cat"].map(df["cat"].value_counts()) > 150]
+df = df[df["cat"].map(df["cat"].value_counts()) > 350]
+
 
 sets = ["train", "test"]
 
@@ -42,8 +43,20 @@ cats = [
 
 df["cat"].replace([i for i in range(1, 17)], cats, inplace=True)
 
-# Create three sets the training, test and val
-train, test = train_test_split(df, test_size=0.25)
+keep_cats = [
+    'bedroom',
+    'living_room',
+    'kitchen',
+    'bathroom']
+
+#df = df[~df["cat"].str.contains("details")]
+
+df = df[df["cat"].isin(keep_cats)]
+
+# reduce size for benchmarking phase
+#reduce, df = train_test_split(df, test_size=0.25)
+
+train, test = train_test_split(df, test_size=0.20, random_state=26)
 
 if not os.path.exists("data"):
     os.makedirs("data")
@@ -52,7 +65,7 @@ for s in sets:
     set_path = Path("data/" + s)
     if not os.path.exists(str(set_path)):
         os.makedirs(str(set_path))
-    for cat in cats:
+    for cat in df['cat'].unique():
         cat_path = Path(str(set_path) + "/" + cat)
         if not os.path.exists(str(cat_path)):
             os.makedirs(str(cat_path))
