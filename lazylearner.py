@@ -28,8 +28,7 @@ from abc import ABC, abstractmethod
 from keras.models import Sequential
 from sklearn.model_selection import train_test_split
 import pandas as pd
-from keras.applications import VGG19
-from keras.applications import VGG16
+from keras.applications import VGG19, VGG16
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras import layers
@@ -64,8 +63,10 @@ class ConvBase():
         """
         if model_name == "vgg19":
             conv_base = VGG19(weights="imagenet", include_top=False, input_shape=input_shape)
-        if model_name == "vgg16":
+        elif model_name == "vgg16":
             conv_base = VGG16(weights="imagenet", include_top=False, input_shape=input_shape)
+        else:
+            print("Not implemented yet:",model_name)
 
         conv_base.trainable = False
 
@@ -139,13 +140,9 @@ class ConvBaseSearch(ABC):
         for model in self.models:
             model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
-    def fit(self):
-        #To do
-        return None
-
     def fit_generator(self, generator, steps_per_epoch, epochs = 1, validation_data = None, validation_steps=None):
          '''
-         Similarly to keras.model.fit_generator, receives a generator as argument and fits for every model
+         Similarly to keras.model.fit_generator, receives a generator as argument and fits for every model.
          '''
          for model, conv_base in zip(self.models, self.conv_bases):
             print("Fitting ", conv_base.name)
@@ -158,17 +155,15 @@ class ConvBaseSearch(ABC):
             conv_base.set_score(hist.history['val_accuracy'][-1])
             print("Score on val set: ", conv_base.score, "\n")
 
-
     def evaluate_generator(self, test_generator):
+        '''
+         Similarly to keras.model.evaluate_generator, receives a generator as argument and evaluates all models.
+        '''
         results = {}
         for model, conv_base in zip(self.models, self.conv_bases):
             results[conv_base.name] = model.evaluate_generator(test_generator)
             
         return results
-
-    def predict(self):
-        #To do
-        return None
 
     def __input_pretrained_models(self, pretrained_models, input_shape):
         '''
@@ -205,7 +200,7 @@ class ConvBaseSearchIFE(ConvBaseSearch):
 
     def _adapt_models(self):
         '''
-        Here is where we adapt the base model (which is the pretrained model) and connect it to the top_model
+        In IFE the convolutional base is plugged to a customer top model. This step is done here.
         '''
         top_model = self.top_model
         for i in range(len(self.models)):
@@ -225,23 +220,12 @@ class ConvBaseSearchIFE(ConvBaseSearch):
 
     def __build_custom_model(self, n_classes):
         """
-        Function that initializes a densely connected network that will be trained on top of the convolutional base.
-
-        Args:
-        ---
-        input_dim: Integer of input dimension for first layer.
-        n_classes: Integer of number of classes that the model should predict.
-
-        Returns:
-        ---
-        model: An Keras Sequential object.
+        Initializes a densely connected network that will be trained on top of the convolutional base.
         """
         if n_classes == 2:
             n_classes = 1
-            loss = "binary_crossentropy"
             activation = "sigmoid"
         else:
-            loss = 'categorical_crossentropy'
             activation = "softmax"
 
         model = Sequential()
@@ -261,7 +245,7 @@ class ConvBaseSearchFT(ConvBaseSearch):
 
     def _adapt_models(self):
         '''
-        Here is where we adapt the base model (which is the pretrained model) and connect it to the top_model
+        In FT the convolutional base is plugged to a custom top model. This step is done here.
         '''
         top_model = self.top_model
         for i in range(len(self.models)):
@@ -272,12 +256,14 @@ class ConvBaseSearchFT(ConvBaseSearch):
             sequential.add(top_model)
             self.models[i] = sequential
             
-    def fit_generator(self, generator, steps_per_epoch, epochs = 1, validation_data = None, validation_steps=None):
+    def fit_generator(self, generator, steps_per_epoch, epochs, validation_data = None, validation_steps=None):
+        # We first need to pretrain the custom top model with all other layers frozen.
         print("Initial training")
-        super().fit_generator(generator, steps_per_epoch, epochs = 1, validation_data = validation_data, validation_steps=validation_steps)
+        super().fit_generator(generator, steps_per_epoch, epochs = epochs, validation_data = validation_data, validation_steps=validation_steps)
+        # Now we can fine-tune the last layer of the convolutional base.
         print("Fine tuning of last", self.n_trainable, "layers")
         self.__set_trainable_layers(self.n_trainable)
-        super().fit_generator(generator, steps_per_epoch, epochs = 1, validation_data = validation_data, validation_steps=validation_steps)
+        super().fit_generator(generator, steps_per_epoch, epochs = epochs, validation_data = validation_data, validation_steps=validation_steps)
     
     def __set_trainable_layers(self, n_trainable):
             for i in range(len(self.models)):
@@ -295,16 +281,7 @@ class ConvBaseSearchFT(ConvBaseSearch):
 
     def __build_custom_model(self, n_classes):
         """
-        Function that initializes a densely connected network that will be trained on top of the convolutional base.
-
-        Args:
-        ---
-        input_dim: Integer of input dimension for first layer.
-        n_classes: Integer of number of classes that the model should predict.
-
-        Returns:
-        ---
-        model: An Keras Sequential object.
+        Initializes a densely connected network that will be trained on top of the convolutional base.
         """
         if n_classes == 2:
             n_classes = 1
@@ -322,7 +299,6 @@ class ConvBaseSearchFT(ConvBaseSearch):
 class ConvBaseSearchSFE(ConvBaseSearch):
 
     def __init__(self, pretrained_models, n_classes, input_shape, top_model = None):
-        # some more arguments should be passed here to instruct the number of layers from the pretrained model to be used
         self.top_model = self.__input_top_model(top_model, n_classes)
         super().__init__(pretrained_models, input_shape)
         self._adapt_models()
@@ -330,15 +306,17 @@ class ConvBaseSearchSFE(ConvBaseSearch):
 
     def _adapt_models(self):
         '''
-        Here is where we adapt the base model (which is the pretrained model) and connect it to the top_model
+        In SFE the convolutional base is NOT plugged to the custom top model. The final model will be only the custom top model.
         '''
         top_model = self.top_model
         for i in range(len(self.models)):
             self.models[i] = top_model
 
     def fit_generator(self, generator, steps_per_epoch, epochs = 1, batch_size=32, validation_data = None, validation_steps=None):
+        # We first need to extract the features from the convolutional base.
         print("Extracting Features...")
         self.__extract_features(generator, validation_data)
+        # Then we can train the custom top model with the feature map as input.
         print("\nFit top model with feature maps")
         self.__fit_top_model(epochs, batch_size)
     
@@ -350,7 +328,6 @@ class ConvBaseSearchSFE(ConvBaseSearch):
             
         return results
         
-    
     def __extract_features(self, generator, validation_data):
         for conv_base in self.conv_bases:
             conv_base.extract_features(generator, validation_data)
@@ -370,8 +347,6 @@ class ConvBaseSearchSFE(ConvBaseSearch):
             #Saves score of last epoch
             conv_base.set_score(hist.history['val_accuracy'][-1])
             print("Score on val set: ", conv_base.score)
-            
-        
     
     def __input_top_model(self, top_model, n_classes):
         if top_model == None:
@@ -383,20 +358,10 @@ class ConvBaseSearchSFE(ConvBaseSearch):
 
     def __build_custom_model(self, n_classes):
         """
-        Function that initializes a densely connected network that will be trained on top of the convolutional base.
-
-        Args:
-        ---
-        input_dim: Integer of input dimension for first layer.
-        n_classes: Integer of number of classes that the model should predict.
-
-        Returns:
-        ---
-        model: An Keras Sequential object.
+        Initializes a densely connected network that will be trained on top of the convolutional base.
         """
         if n_classes == 2:
             n_classes = 1
-            loss = "binary_crossentropy"
             activation = "sigmoid"
         else:
             loss = 'categorical_crossentropy'
